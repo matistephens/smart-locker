@@ -59,7 +59,7 @@ const NumericKeypad: React.FC<NumericKeypadProps> = ({ onSubmit }) => {
           Clear
         </Button>
         <Button onClick={handleSubmit}>
-          Submit
+          Open
         </Button>
       </div>
     </div>

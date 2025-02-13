@@ -9,28 +9,60 @@ const LockerScreen: React.FC = () => {
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  const handleDeliveryComplete = () => {
-    console.log('Door locked (simulated)');
-    setMessage('Thank you for your delivery! The door is now locked.');
-    setMode('delivery');
-    setTimeout(() => {
-      setMode('pickup');
-      setMessage('');
-    }, 3000);
+  // Call the real API to process a delivery complete event.
+  const handleDeliveryComplete = async () => {
+    setError('');
+    try {
+      const response = await fetch('/api/delivery/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // For now, use a dummy resident email; in production, this could come from a form.
+        body: JSON.stringify({ resident_email: 'matias.stur@gmail.com' }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Delivery complete: Door locked.');
+        setMessage('Thank you for your delivery! The door is now locked.');
+        setMode('delivery');
+        // Transition to pickup mode after 3 seconds.
+        setTimeout(() => {
+          setMode('pickup');
+          setMessage('');
+        }, 3000);
+      } else {
+        setError(result.error || 'Error processing delivery.');
+      }
+    } catch (err) {
+      console.error('Error in handleDeliveryComplete:', err);
+      setError('Error processing delivery.');
+    }
   };
 
+  // Call the real API to validate the resident's code.
   const handleSubmitCode = async (code: string) => {
     setError('');
-    if (code === '123456') {
-      console.log('Door Opened (simulated)');
-      setMessage('Door Opened!');
-      setMode('doorOpened');
-      setTimeout(() => {
-        setMode('idle');
-        setMessage('');
-      }, 3000);
-    } else {
-      setError('Invalid Code, please try again.');
+    try {
+      const response = await fetch('/api/validate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json();
+      if (result.valid) {
+        console.log('Door opened.');
+        setMessage('Door Opened!');
+        setMode('doorOpened');
+        // Revert back to idle mode after 3 seconds.
+        setTimeout(() => {
+          setMode('idle');
+          setMessage('');
+        }, 3000);
+      } else {
+        setError(result.message || 'Invalid Code, please try again.');
+      }
+    } catch (err) {
+      console.error('Error validating code:', err);
+      setError('Error validating code.');
     }
   };
 
@@ -40,6 +72,7 @@ const LockerScreen: React.FC = () => {
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">Smart Locker System</h1>
           <p>Waiting for delivery or pickup...</p>
+          {/* Button to trigger the delivery complete API call */}
           <button
             onClick={handleDeliveryComplete}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
